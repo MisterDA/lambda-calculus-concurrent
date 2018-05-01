@@ -1,0 +1,61 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{bussproofs}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\B}{\mathbb{B}}
+
+\title{Concurrent-\(\lambda\) Operational Semantics}
+\author{Antonin Décimo}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+  \AxiomC{}
+  \UnaryInfC{\((v, s) \Downarrow v\)}
+  \DisplayProof{}
+  \quad
+  \AxiomC{}
+  \UnaryInfC{\((x, s) \Downarrow s(x)\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{prooftree}
+  \AxiomC{\((e, s) \Downarrow v\)}
+  \AxiomC{\((e', s) \Downarrow v'\)}
+  \BinaryInfC{\((e \circ e', s) \Downarrow (v \circ v')\)}
+\end{prooftree}
+
+Where
+\(\circ \in \{+_\N, -_\N, *_\N, /_\N, <_\N, >_\N, \leq_\N, \geq_\N,
+=_{\N, \B, \textbf{Strings}}, \neq_{\N, \B, \textbf{Strings}},
+\vee_\B, \wedge_\B, concat_{\textbf{Strings}}\}\).
+
+\begin{center}
+  \AxiomC{\((b, s) \Downarrow \top\)}
+  \AxiomC{\((e, s) \Downarrow v\)}
+  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s)
+    \Downarrow v\)}
+  \DisplayProof{}
+  \quad
+  \AxiomC{\((b, s) \Downarrow \bot\)}
+  \AxiomC{\((e', s) \Downarrow v\)}
+  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s)
+    \Downarrow v\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{prooftree}
+  \AxiomC{\((e, s) \Downarrow v\)}
+  \AxiomC{\((e', s[x := v]) \Downarrow v'\)}
+  \BinaryInfC{\((\text{let } x = e \text{ in } e', s) \Downarrow v'\)}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{}
+  \UnaryInfC{\((\text{print } e, s) \Downarrow unit\)}
+\end{prooftree}
+
+\end{document}
