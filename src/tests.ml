@@ -1,45 +1,41 @@
 open Ast
 open Lc
 
-let p = LetIn ("x", Value (VInt 42), Variable "x")
-let v = eval' p
+let () = Random.self_init ()
 
-(* let x = 42 in
- * let f = fun _ -> x in
- * let x = 1337 in
- * print_int (f ()) *)
-let p = LetIn ("x", Value (VInt 42),
-               LetIn ("f", Value (VFun ([], fresh (), Variable "x")),
-                      LetIn ("x", Value (VInt 1337),
-                             Print (App (Variable "f", Value VUnit)))))
-let p' = cps p
+module RRI = Interpreter (Sched.RoundRobin)
+module RI = Interpreter (Sched.Random)
 
-let v = eval' p
+let vint i = Value (VInt i)
+let vunit = Value VUnit
+let eq x y = Binop ("=", x, y)
 
-(* (fun x -> fun y -> y x) 42 (fun z -> z) *)
-let p = App (App (Value (VFun ([], "x",
-                               Value (VFun ([], "y",
-                                            App (Variable "y", Variable "x"))))),
-                  Value (VInt 42)),
-             Value (VFun ([], "z", Variable "z")))
-let v = eval' p
+(* print 0; fork (print 1); fork (print 2); yield; print 3 *)
+let p = seqs [Print (Value (VInt 0));
+              Fork (Print (Value (VInt 1)));
+              Fork (Print (Value (VInt 2)));
+              Yield;
+              Print (Value (VInt 3))]
 
+let _ = RRI.eval' p
+let _ = RI.eval' p
+let _ = RI.eval' p
+let _ = RI.eval' p
 
-(* let id = Value (VFun ("x", Variable "x"))
- * let print_int i = Print (Value (VInt i))
- * let seq t1 t2 = App (Value (VFun (fresh (), t2)), t1)
- * let seqs terms =
- *   (\* let terms = List.rev terms in *\)
- *   match terms with
- *   | [] -> raise (Invalid_argument "terms expected")
- *   | h :: [] -> h
- *   | h :: t -> List.fold_left seq h t
- *
- * let p = seqs [print_int 0; print_int 1; print_int 2]
- *
- * (\* print 0; fork (print 1); fork (print 2); yield; print 3 *\)
- * let p = seqs [print_int 0; Fork (print_int 1); Fork (print_int 2);
- *               Yield; print_int 3]
- * let _ = eval' p
- * let p' = cps p
- * let _ = eval'' p *)
+(* let x = ref 1 in
+   fork (if !x = 1 then x := 2);
+   fork (if !x = 2 then x := 3);
+   print !x
+ *)
+let p = LetIn ("x", Ref (vint 1),
+               seqs [Fork (IfThenElse (eq (Unref (Variable "x")) (vint 1),
+                                       Assign (Variable "x", vint 2),
+                                       vunit));
+                     Fork (IfThenElse (eq (Unref (Variable "x")) (vint 2),
+                                       Assign (Variable "x", vint 3),
+                                       vunit));
+                     Print (Unref (Variable "x"))])
+let _ = RRI.eval' p
+let _ = RI.eval' p
+let _ = RI.eval' p
+let _ = RI.eval' p

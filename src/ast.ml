@@ -1,3 +1,5 @@
+(* The Abstract Syntax Tree for the language. *)
+
 type value =
   VInt of int
 | VBool of bool
