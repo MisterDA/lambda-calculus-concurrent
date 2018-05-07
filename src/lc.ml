@@ -52,6 +52,7 @@ and pprint' = function
   | Assign (t1, t2) -> pprint' t1; Printf.printf " := "; pprint' t2
   | Print t -> Printf.printf "print ("; pprint' t; Printf.printf ")"
   | Fork t -> Printf.printf "fork ("; pprint' t; Printf.printf ")"
+  | Wait t -> Printf.printf "wait ("; pprint' t; Printf.printf ")"
   | Yield -> Printf.printf "yield"
 
 (* A pretty-printer for values *)
@@ -94,16 +95,26 @@ end = struct
        sch := Sch.(!sch
                    |> push_next (App (k, id), env));
        VUnit
+    | App (k, Wait t) ->
+       begin match eval env t with
+       | VBool true -> eval env (App (k, id))
+       | VBool false ->
+          sch := Sch.(!sch
+                      |> push_back (App (k, id), env));
+          VUnit
+       | _ -> error "bool"
+       end
     | App (t1, t2) ->
        let v = eval env t2 in
        begin match eval env t1 with
        | VFun (e, x, t1) ->
           let env = (x, v) :: e in
           eval env t1
-       | v -> (print v; error "fun")
+       | v -> error "fun"
        end
     | Fork t -> failwith "fork"
     | Yield -> failwith "yield"
+    | Wait t -> failwith "wait"
     | Unop (op, t) ->
        let unop_bool op t =
          match eval env t with
@@ -212,6 +223,7 @@ end = struct
     | IfThenElse (t, t1, t2) ->
        cps' (IfThenElse (App (cps t, id), App (cps t1, id), App (cps t2, id)))
     | Fork t -> cps' (Fork (App (cps t, id)))
+    | Wait t -> cps' (Wait (App (cps t, id)))
     | Yield -> cps' Yield
 
   let eval' p =

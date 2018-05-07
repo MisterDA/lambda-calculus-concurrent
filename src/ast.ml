@@ -21,6 +21,7 @@ and term =
 | IfThenElse of term * term * term
 | Print of term
 | Fork of term
+| Wait of term
 | Yield
 
 and var = string
