@@ -172,7 +172,7 @@ end = struct
        end
     | Assign (t1, t2) ->
        let v = eval env t2 in
-       begin match eval env t with
+       begin match eval env t1 with
        | VRef r -> r := v; VRef r
        | _ -> error "value ref"
        end
