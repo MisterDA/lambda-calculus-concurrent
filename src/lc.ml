@@ -171,8 +171,9 @@ end = struct
        | _ -> error "value ref"
        end
     | Assign (t1, t2) ->
-       begin match eval env t1 with
-       | VRef r -> r := eval env t2; VRef r
+       let v = eval env t2 in
+       begin match eval env t with
+       | VRef r -> r := v; VRef r
        | _ -> error "value ref"
        end
     | LetIn (v, t1, t2) ->
