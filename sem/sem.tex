@@ -10,31 +10,60 @@
 
 \title{Concurrent-\(\lambda\) Operational Semantics}
 \author{Antonin Décimo}
+\date{}
 
 \begin{document}
 \maketitle
+\thispagestyle{empty}
 
 To describe the operational semantics of the concurrent-lambda
 calculus, we use tuples of the form \((e, s, h, \sigma)\) where \(e\)
 is an expression (an extended lambda-term), \(s\) an environment
 associating variables to values, \(h\) a growable heap associating
-addresses to values, and \(\sigma\) is a set of threads, that are
+addresses to values, and \(\sigma\) is a list of threads, that are
 represented as pairs of extended lambda-terms and their environment.
+Extended lambda-terms evaluate to tuples of value, heap, and thread
+list.
+
+Note that binary operators are not standard lambda-calculus functions,
+thus it not possible to do ML-style partial applications with them.
 
 \begin{center}
   \AxiomC{}
-  \UnaryInfC{\((v, s, h, \sigma) \Downarrow v\)}
+  \LeftLabel{value}
+  \UnaryInfC{\((v, s, h, \sigma) \Downarrow (v, h, \sigma)\)}
   \DisplayProof{}
   \quad
   \AxiomC{}
-  \UnaryInfC{\((x, s, h, \sigma) \Downarrow s[x]\)}
+  \LeftLabel{variable}
+  \UnaryInfC{\((x, s, h, \sigma) \Downarrow (s[x], h, \sigma)\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{center}
+  \AxiomC{\((N, s, h_0, \sigma_0) \Downarrow (v', h_1, \sigma_1)\)}
+  \AxiomC{\((M, s, h_1, \sigma_1) \Downarrow (\lambda x. L, h_2, \sigma_2)\)}
+  \AxiomC{\((L, s[x := v'], h_2, \sigma_2) \Downarrow (v, h_3,
+    \sigma_3)\)}
+  \LeftLabel{application}
+  \TrinaryInfC{\((M\:N, s, h_0, \sigma_0) \Downarrow (v, h_3, \sigma_3)\)}
   \DisplayProof{}
 \end{center}
 
 \begin{prooftree}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
-  \AxiomC{\((e', s, h, \sigma) \Downarrow v'\)}
-  \BinaryInfC{\((e \circ e', s, h, \sigma) \Downarrow v \circ v'\)}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow (v, h', \sigma')\)}
+  \LeftLabel{unary operators}
+  \RightLabel{\quad\(\circ \in \{\neg_\B, -_\N\}\)}
+  \UnaryInfC{\((\circ e, s, h, \sigma) \Downarrow (\circ v, h',
+    \sigma')\)}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{\((e, s, h_0, \sigma_0) \Downarrow (v, h_1, \sigma_1)\)}
+  \AxiomC{\((e', s, h_1, \sigma_1) \Downarrow (v', h_2, \sigma_2)\)}
+  \LeftLabel{binary operators}
+  \BinaryInfC{\((e \circ e', s, h_0, \sigma_0) \Downarrow (v \circ v',
+    h_2, \sigma_2)\)}
 \end{prooftree}
 
 Where
@@ -42,74 +71,97 @@ Where
 =_{\N, \B, \textbf{Strings}}, \neq_{\N, \B, \textbf{Strings}},
 \vee_\B, \wedge_\B, concat_{\textbf{Strings}}\}\).
 
-\begin{center}
-  \AxiomC{\((b, s, h, \sigma) \Downarrow \top\)}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
+\begin{prooftree}
+  \AxiomC{\((b, s, h_0, \sigma_0) \Downarrow (\top, h_1, \sigma_1)\)}
+  \AxiomC{\((e, s, h_1, \sigma_1) \Downarrow (v, h_2, \sigma_2)\)}
+  \LeftLabel{if-true-then}
   \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s, h,
-    \sigma) \Downarrow v\)}
-  \DisplayProof{}
-  \quad
-  \AxiomC{\((b, s, h, \sigma) \Downarrow \bot\)}
-  \AxiomC{\((e', s, h, \sigma) \Downarrow v\)}
+    \sigma) \Downarrow (v, h_2, \sigma_2)\)}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{\((b, s, h_0, \sigma_0) \Downarrow (\bot, h_1, \sigma_1)\)}
+  \AxiomC{\((e', s, h_1, \sigma_1) \Downarrow (v, h_2, \sigma_2)\)}
+  \LeftLabel{if-false-else}
   \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s, h,
-    \sigma) \Downarrow v\)}
-  \DisplayProof{}
-\end{center}
-
-\begin{prooftree}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
-  \AxiomC{\((e', s[x := v], h, \sigma) \Downarrow v'\)}
-  \BinaryInfC{\((\text{let } x = e \text{ in } e', s, h, \sigma)
-    \Downarrow v'\)}
-\end{prooftree}
-
-\begin{prooftree}
-  \AxiomC{}
-  \UnaryInfC{\((\text{print } e, s, h, \sigma) \Downarrow unit\)}
+    \sigma) \Downarrow (v, h_2, \sigma_2)\)}
 \end{prooftree}
 
 \begin{center}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
-  \AxiomC{\(\alpha = |h| + 1\)}
-  \BinaryInfC{\((\text{ref } e, s, h, \sigma) \Downarrow unit,
-    h[\alpha := v]\)}
+  \AxiomC{\(((\lambda x. e')\:e, s, h, \sigma) \Downarrow (v, h',
+    \sigma')\)}
+  \LeftLabel{let in}
+  \UnaryInfC{\((\text{let } x = e \text{ in } e', s, h, \sigma)
+    \Downarrow (v, h', \sigma')\)}
   \DisplayProof{}
   \quad
-  \AxiomC{\((e, s, h, \sigma) \Downarrow \alpha\)}
-  \AxiomC{\((h[\alpha], s, h, \sigma) \Downarrow v\)}
-  \BinaryInfC{\((\text{unref } e, s, h, \sigma) \Downarrow v, h\)}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow (v, h', \sigma')\)}
+  \AxiomC{print \(v\)}
+  \LeftLabel{print}
+  \BinaryInfC{\((\text{print } e, s, h, \sigma) \Downarrow (unit, h',
+    \sigma')\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{center}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow (v, h', \sigma')\)}
+  \AxiomC{\(\alpha \not\in h\)}
+  \LeftLabel{ref}
+  \BinaryInfC{\((\text{ref } e, s, h, \sigma) \Downarrow (unit,
+    h'[\alpha := v], \sigma')\)}
+  \DisplayProof{}
+  \\\vspace{0.3cm}
+  \AxiomC{\((e, s, h_0, \sigma_0) \Downarrow (\alpha, h_1, \sigma_1)\)}
+  \AxiomC{\((h_1[\alpha], s, h_1, \sigma_1) \Downarrow (v, h_2,
+    \sigma_2)\)}
+  \LeftLabel{unref}
+  \BinaryInfC{\((\text{unref } e, s, h_0, \sigma_0) \Downarrow (v,
+    h_2, \sigma_2)\)}
+  \DisplayProof{}
+  \\\vspace{0.3cm}
+  \AxiomC{\((e', s, h_0, \sigma_0) \Downarrow (v, h_1, \sigma_1)\)}
+  \AxiomC{\((e, s, h_1, \sigma_1) \Downarrow (\alpha, h_2,
+    \sigma_2)\)}
+  \LeftLabel{assign}
+  \BinaryInfC{\((e := e', s, h_0, \sigma_0) \Downarrow (unit,
+    h_2[\alpha := v], \sigma_2)\)}
   \DisplayProof{}
 \end{center}
 
 \begin{prooftree}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow \alpha\)}
-  \AxiomC{\((e', s, h, \sigma) \Downarrow v\)}
-  \BinaryInfC{\((e := e', s, h, \sigma) \Downarrow unit, h[\alpha := v]\)}
-\end{prooftree}
-
-\begin{center}
-  \AxiomC{\(\sigma' = \sigma \cup \{k, t\}\)}
+  \AxiomC{\(\sigma' = (k\:id) :: t :: \sigma\)}
   \AxiomC{\(\tau = (t', s') \in \sigma'\)}
-  \BinaryInfC{\((k\:(\text{fork } t), s, h, \sigma) \Downarrow (t',
-    s', h, \sigma \setminus \{\tau\})\)}
-  \DisplayProof{}
-  \quad
-  \AxiomC{\(\sigma' = \sigma \cup \{k\}\)}
-  \AxiomC{\(\tau = (t', s') \in \sigma'\)}
-  \BinaryInfC{\((k\:\text{yield}, s, h, \sigma) \Downarrow (t', s', h,
-    \sigma \setminus \{\tau\})\)}
-  \DisplayProof{}
-\end{center}
+  \AxiomC{\((t', s', h, \sigma' \setminus \{\tau\}) \Downarrow (v,
+    h'', \sigma'')\)}
+  \LeftLabel{fork}
+  \TrinaryInfC{\((k\:(\text{fork } t), s, h, \sigma) \Downarrow (unit,
+    h'', \sigma'')\)}
+\end{prooftree}
 
-\begin{center}
-  \AxiomC{\((e, s, h, \sigma) \Downarrow true\)}
-  \UnaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (k, s,
-    h, \sigma)\)}
-  \DisplayProof{}
-  \quad
-  \AxiomC{\((e, s, h, \sigma) \Downarrow false\)}
-  \UnaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (k
-    \text{ yield}, s, h, \sigma)\)}
-  \DisplayProof{}
-\end{center}
+\begin{prooftree}
+  \AxiomC{\(\sigma' = (k\:id) :: \sigma\)}
+  \AxiomC{\(\tau = (t', s') \in \sigma'\)}
+  \AxiomC{\((t', s', h, \sigma' \setminus \{\tau\}) \Downarrow (v,
+    h'', \sigma'')\)}
+  \LeftLabel{yield}
+  \TrinaryInfC{\((k\:\text{yield}, s, h, \sigma) \Downarrow (unit,
+    h'', \sigma'')\)}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow (\top, h, \sigma)\)}
+  \AxiomC{\((k\:id, s, h, \sigma) \Downarrow (v, h', \sigma')\)}
+  \LeftLabel{wait-true}
+  \BinaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (v, h',
+    \sigma')\)}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow (\bot, h, \sigma)\)}
+  \AxiomC{\(((k\:(\text{wait } e)) \text{ yield}, s, h, \sigma)
+    \Downarrow (v, h', \sigma')\)}
+  \LeftLabel{wait-false}
+  \BinaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (v, h',
+    \sigma')\)}
+\end{prooftree}
 \end{document}
