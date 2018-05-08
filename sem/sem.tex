@@ -1,5 +1,7 @@
 \documentclass[12pt,a4paper]{article}
-
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+\usepackage[margin=1cm]{geometry}
 \usepackage{amsmath,amsthm,amssymb}
 \usepackage{bussproofs}
 
@@ -12,20 +14,27 @@
 \begin{document}
 \maketitle
 
+To describe the operational semantics of the concurrent-lambda
+calculus, we use tuples of the form \((e, s, h, \sigma)\) where \(e\)
+is an expression (an extended lambda-term), \(s\) an environment
+associating variables to values, \(h\) a growable heap associating
+addresses to values, and \(\sigma\) is a set of threads, that are
+represented as pairs of extended lambda-terms and their environment.
+
 \begin{center}
   \AxiomC{}
-  \UnaryInfC{\((v, s) \Downarrow v\)}
+  \UnaryInfC{\((v, s, h, \sigma) \Downarrow v\)}
   \DisplayProof{}
   \quad
   \AxiomC{}
-  \UnaryInfC{\((x, s) \Downarrow s(x)\)}
+  \UnaryInfC{\((x, s, h, \sigma) \Downarrow s[x]\)}
   \DisplayProof{}
 \end{center}
 
 \begin{prooftree}
-  \AxiomC{\((e, s) \Downarrow v\)}
-  \AxiomC{\((e', s) \Downarrow v'\)}
-  \BinaryInfC{\((e \circ e', s) \Downarrow (v \circ v')\)}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
+  \AxiomC{\((e', s, h, \sigma) \Downarrow v'\)}
+  \BinaryInfC{\((e \circ e', s, h, \sigma) \Downarrow v \circ v'\)}
 \end{prooftree}
 
 Where
@@ -34,28 +43,73 @@ Where
 \vee_\B, \wedge_\B, concat_{\textbf{Strings}}\}\).
 
 \begin{center}
-  \AxiomC{\((b, s) \Downarrow \top\)}
-  \AxiomC{\((e, s) \Downarrow v\)}
-  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s)
-    \Downarrow v\)}
+  \AxiomC{\((b, s, h, \sigma) \Downarrow \top\)}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
+  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s, h,
+    \sigma) \Downarrow v\)}
   \DisplayProof{}
   \quad
-  \AxiomC{\((b, s) \Downarrow \bot\)}
-  \AxiomC{\((e', s) \Downarrow v\)}
-  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s)
-    \Downarrow v\)}
+  \AxiomC{\((b, s, h, \sigma) \Downarrow \bot\)}
+  \AxiomC{\((e', s, h, \sigma) \Downarrow v\)}
+  \BinaryInfC{\((\text{if } b \text{ then } e \text{ else } e', s, h,
+    \sigma) \Downarrow v\)}
   \DisplayProof{}
 \end{center}
 
 \begin{prooftree}
-  \AxiomC{\((e, s) \Downarrow v\)}
-  \AxiomC{\((e', s[x := v]) \Downarrow v'\)}
-  \BinaryInfC{\((\text{let } x = e \text{ in } e', s) \Downarrow v'\)}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
+  \AxiomC{\((e', s[x := v], h, \sigma) \Downarrow v'\)}
+  \BinaryInfC{\((\text{let } x = e \text{ in } e', s, h, \sigma)
+    \Downarrow v'\)}
 \end{prooftree}
 
 \begin{prooftree}
   \AxiomC{}
-  \UnaryInfC{\((\text{print } e, s) \Downarrow unit\)}
+  \UnaryInfC{\((\text{print } e, s, h, \sigma) \Downarrow unit\)}
 \end{prooftree}
 
+\begin{center}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow v\)}
+  \AxiomC{\(\alpha = |h| + 1\)}
+  \BinaryInfC{\((\text{ref } e, s, h, \sigma) \Downarrow unit,
+    h[\alpha := v]\)}
+  \DisplayProof{}
+  \quad
+  \AxiomC{\((e, s, h, \sigma) \Downarrow \alpha\)}
+  \AxiomC{\((h[\alpha], s, h, \sigma) \Downarrow v\)}
+  \BinaryInfC{\((\text{unref } e, s, h, \sigma) \Downarrow v, h\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{prooftree}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow \alpha\)}
+  \AxiomC{\((e', s, h, \sigma) \Downarrow v\)}
+  \BinaryInfC{\((e := e', s, h, \sigma) \Downarrow unit, h[\alpha := v]\)}
+\end{prooftree}
+
+\begin{center}
+  \AxiomC{\(\sigma' = \sigma \cup \{k, t\}\)}
+  \AxiomC{\(\tau = (t', s') \in \sigma'\)}
+  \BinaryInfC{\((k\:(\text{fork } t), s, h, \sigma) \Downarrow (t',
+    s', h, \sigma \setminus \{\tau\})\)}
+  \DisplayProof{}
+  \quad
+  \AxiomC{\(\sigma' = \sigma \cup \{k\}\)}
+  \AxiomC{\(\tau = (t', s') \in \sigma'\)}
+  \BinaryInfC{\((k\:\text{yield}, s, h, \sigma) \Downarrow (t', s', h,
+    \sigma \setminus \{\tau\})\)}
+  \DisplayProof{}
+\end{center}
+
+\begin{center}
+  \AxiomC{\((e, s, h, \sigma) \Downarrow true\)}
+  \UnaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (k, s,
+    h, \sigma)\)}
+  \DisplayProof{}
+  \quad
+  \AxiomC{\((e, s, h, \sigma) \Downarrow false\)}
+  \UnaryInfC{\((k\:(\text{wait } e), s, h, \sigma) \Downarrow (k
+    \text{ yield}, s, h, \sigma)\)}
+  \DisplayProof{}
+\end{center}
 \end{document}
