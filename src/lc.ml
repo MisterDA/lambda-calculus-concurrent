@@ -95,12 +95,12 @@ end = struct
        sch := Sch.(!sch
                    |> push_next (App (k, id), env));
        VUnit
-    | App (k, Wait t) ->
+    | App (k, Wait t) as term ->
        begin match eval env t with
        | VBool true -> eval env (App (k, id))
        | VBool false ->
           sch := Sch.(!sch
-                      |> push_back (App (k, id), env));
+                      |> push_back (term, env));
           VUnit
        | _ -> error "bool"
        end
