@@ -20,6 +20,8 @@ rule read = parse
 | '('      { LPAREN }
 | ')'      { RPAREN }
 | ';'      { SEMICOLON }
+| "fun"    { FUN }
+| "->"     { ARROW }
 | "let"    { LET }
 | "="      { EQ }
 | "in"     { IN }

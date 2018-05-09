@@ -8,7 +8,7 @@
 %token <bool> BOOL
 %token <unit> UNIT
 %token LPAREN RPAREN SEMICOLON REF UNREF ASSIGN PRINT LET IN EQ FORK YIELD WAIT
-   EOF IF THEN ELSE
+   EOF IF THEN ELSE FUN ARROW
 
 %start <Ast.term> prog
 %%
@@ -48,3 +48,4 @@ value:
 | s = STRING { VString s }
 | b = BOOL { VBool b }
 | UNIT { VUnit }
+| FUN x = ID ARROW e = expr_simple { VFun ([], x, e) }
