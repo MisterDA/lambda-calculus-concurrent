@@ -61,7 +61,7 @@ and pprintv = function
   | VBool b -> Printf.printf "%b" b
   | VString s -> Printf.printf "\"%s\"" s
   | VRef r -> Printf.printf "ref "; pprintv !r
-  | VFun (_, x, t) -> Printf.printf "λ%s. " x; pprint' t
+  | VFun (_, x, t) -> Printf.printf "(λ%s. " x; pprint' t; print_string ")"
   | VUnit -> Printf.printf "()"
 
 
@@ -70,6 +70,7 @@ module Interpreter (Sch : Scheduler) : sig
   type sched
   (* Evaluate a term *)
   val eval' : Ast.term -> unit
+  val cps : Ast.term -> Ast.term
 end = struct
   type sched = Sch.t
 
@@ -90,18 +91,18 @@ end = struct
        sch := Sch.(!sch
                    |> push_next (t, env)
                    |> push_back (App (k, id), env));
-       VUnit
+       next_thread ()
     | App (k, Yield) ->
        sch := Sch.(!sch
                    |> push_next (App (k, id), env));
-       VUnit
+       next_thread ()
     | App (k, Wait t) as term ->
        begin match eval env t with
        | VBool true -> eval env (App (k, id))
        | VBool false ->
           sch := Sch.(!sch
                       |> push_back (term, env));
-          VUnit
+          next_thread ()
        | _ -> error "bool"
        end
     | App (t1, t2) ->
@@ -199,6 +200,11 @@ end = struct
     end;
     if bold then print_string "\027[0m"
 
+  and next_thread () =
+    let (term, env), sch' = Sch.pop !sch in
+    sch := sch';
+    eval env term
+
   let rec cps t =
     let cps' t =
       let k = freshk () in
@@ -228,15 +234,11 @@ end = struct
     | Yield -> cps' Yield
 
   let eval' p =
-    sch := Sch.(empty |> push_next (App (cps p, id), []));
+    sch := Sch.empty;
     let rec aux () =
-      if not (Sch.is_empty !sch) then begin
-          let (term, env), sch' = Sch.pop !sch in
-          sch := sch';
-          ignore (eval env term);
-          aux ();
-        end
-    in
-    aux ();
+      ignore (eval [] (App (cps p, id)));
+      if not (Sch.is_empty !sch) then
+        ignore (next_thread ())
+    in aux ();
     print_endline ""
 end
